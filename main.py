@@ -7,3 +7,5 @@ if __name__ == "__main__":
     
 # http://127.0.0.1:8000/hello-world
 # http://localhost:8000/hello-world
+
+# uv run ./main.py
