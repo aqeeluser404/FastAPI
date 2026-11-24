@@ -1,44 +1,33 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form, Depends
 from app.schemas import PostCreate, PostResponse
+from app.db import Post, create_db_and_tables, get_async_session
+from sqlalchemy.ext.asyncio import AsyncSession
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await create_db_and_tables()
+    yield
 
-# dictionaries work similar to json objects
+app = FastAPI(lifespan=lifespan)
 
-# @app.get("/hello-world")
+@app.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    caption: str = Form(""), # receiving caption as form data, can be of many other types
+    session: AsyncSession = Depends(get_async_session) 
+    # dependency injection - get_async_session will be the dependency as it allows access to db
+):
+    post = Post(
+        caption=caption,
+        url="dummyurl",
+        file_type="photo",
+        file_name="dummy name"
+    )
+    session.add(post) # staging basically
+    await session.commit() # !!!
+    await session.refresh(post)
+    return post # not needed though
 
-# def hello_word():
-#     return {"message": "Hello World"}
 
-text_posts = {
-    1: {"title": "New Post", "content": "cool test post"},
-    2: {"title": "Second Post", "content": "cool test post"},
-    3: {"title": "Third Post", "content": "cool test post"},
-    4: {"title": "Forth Post", "content": "cool test post"},
-    5: {"title": "Fifth Post", "content": "cool test post"}
-}
-
-# specify type parameters such as limit: int = None, content_length: int
-# python type hint, must specify the type so fastapi can validate the data going into and coming out of the function
-
-@app.get("/posts")
-def get_all_posts(limit: int = None):
-    if limit:
-        return list(text_posts.values())[:limit]
-        # return text_posts[:limit]
-    return text_posts
-
-@app.get("/posts/{id}")
-def get_post(id: int) -> PostResponse:
-    if id not in text_posts:
-        raise HTTPException(status_code=404, detail="Post not found")
-    return text_posts.get(id)
-
-# request body for posts
-# indicating the type after -> tells FastAPI the type that will be returned
-
-@app.post("/posts")
-def create_post(post: PostCreate) -> PostResponse:
-    new_post = {"title": post.title, "content": post.content}
-    text_posts[max(text_posts.keys()) + 1] = new_post
-    return new_post
+    

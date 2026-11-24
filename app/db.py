@@ -9,12 +9,16 @@ from sqlalchemy import Column, String, String, Text, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
-import datetime
+from datetime import datetime
 
 # sql database python like
 DATABASE_URL = "sqlite+aiosqlite:///./test.db" # can switch with live postgre connection link
 
-class Post(DeclarativeBase):
+# cannot directly declare from declarativeBase
+class Base(DeclarativeBase):
+    pass
+
+class Post(Base):
     __tablename__ = "posts"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -31,7 +35,7 @@ async def create_db_and_tables():
     async with engine.begin() as conn:
     # finds all the classes that inherits from DeclarativeBase
     # it starts the engine and it creates them inside the database
-        await conn.run_async(DeclarativeBase.metadata.create_all) 
+        await conn.run_sync(Base.metadata.create_all) 
     
     
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
