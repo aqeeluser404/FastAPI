@@ -4,6 +4,12 @@ from app.db import Post, create_db_and_tables, get_async_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
 from sqlalchemy import select
+from app.images import imageKit
+# from imagekitio.models.UploadFileRequestOptions import UploadFileRequestOptions
+import shutil
+import os
+import uuid
+import tempfile
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,6 +25,23 @@ async def upload_file(
     session: AsyncSession = Depends(get_async_session) 
     # dependency injection - get_async_session will be the dependency as it allows access to db
 ):
+    temp_file_path = None
+    # try:
+    #     # create temp file, if a user uploads jpeg, we create a temp jpeg
+    #     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splittext(file.filename)[1]) as temp_file:
+    #         temp_file_path = temp_file.name
+    #         shutil.copyfileobj(file.file, temp_file)
+            
+    #     upload_result = imageKit.upload_file(
+    #         file=open(temp_file_path, "rb")
+    #         file_name=file.filename,
+    #         options=UploadFileRequestOptions(
+    #             use_unique_file_name=True,
+    #             tags=["backend-upload"]
+    #         )
+    #     )
+            
+        
     post = Post(
         caption=caption,
         url="dummyurl",
