@@ -26,32 +26,41 @@ async def upload_file(
     # dependency injection - get_async_session will be the dependency as it allows access to db
 ):
     temp_file_path = None
-    # try:
-    #     # create temp file, if a user uploads jpeg, we create a temp jpeg
-    #     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splittext(file.filename)[1]) as temp_file:
-    #         temp_file_path = temp_file.name
-    #         shutil.copyfileobj(file.file, temp_file)
-            
-    #     upload_result = imageKit.upload_file(
-    #         file=open(temp_file_path, "rb")
-    #         file_name=file.filename,
-    #         options=UploadFileRequestOptions(
-    #             use_unique_file_name=True,
-    #             tags=["backend-upload"]
-    #         )
-    #     )
-            
-        
-    post = Post(
-        caption=caption,
-        url="dummyurl",
-        file_type="photo",
-        file_name="dummy name"
-    )
-    session.add(post) # staging basically
-    await session.commit() # !!!
-    await session.refresh(post)
-    return post # not needed though
+    try:
+        # create temp file, if a user uploads jpeg, we create a temp jpeg
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=os.path.splitext(file.filename)[1]
+        ) as temp_file:
+            temp_file_path = temp_file.name
+            shutil.copyfileobj(file.file, temp_file)
+
+        # upload file
+        with open(temp_file_path, "rb") as f:
+            upload_result = imageKit.files.upload(
+                file=f,
+                file_name=file.filename,
+                use_unique_file_name=True,
+                tags=["backend-upload"],
+            )
+
+        post = Post(
+            caption=caption,
+            url=upload_result.url,
+            file_type="video" if file.content_type.startswith("video/") else "image",
+            file_name=upload_result.name,
+        )
+        session.add(post)  # staging basically
+        await session.commit()  # !!!
+        await session.refresh(post)
+        return post
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+        file.file.close()
 
 @app.get("/feed")
 async def get_feed(
